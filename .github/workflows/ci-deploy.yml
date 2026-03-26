@@ -91,7 +91,6 @@ jobs:
     environment: production
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    defaults:
     steps:
       - uses: actions/checkout@v4
 

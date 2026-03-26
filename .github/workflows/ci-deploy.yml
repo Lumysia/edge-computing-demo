@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Railway
-        run: cd origin-server && railway up --ci
+        run: cd origin-server && railway up
 
   # ── 4. Deploy Worker → Cloudflare ─────────────────────────────
   deploy-worker:

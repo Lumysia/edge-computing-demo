@@ -96,7 +96,7 @@ jobs:
 
       - name: Deploy to Railway
         working-directory: ./origin-server
-        run: railway up --service=${{ vars.RAILWAY_SERVICE_ID }}
+        run: railway up
 
   # ── 4. Deploy Worker → Cloudflare ─────────────────────────────
   deploy-worker:

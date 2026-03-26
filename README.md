@@ -162,13 +162,6 @@ The Worker URL will be printed — open it in a browser to run the demo.
 - **Processed summary**: ~200–500 bytes
 - **Reduction**: ~90% of data never leaves the edge
 
-### Demo Narrative for Presentation
-
-1. **"Generate IoT Data"** → "We're simulating 100 sensor readings from an industrial facility — temperature, humidity, pressure, vibration sensors."
-2. **"Run Comparison"** → "The same data goes to both endpoints simultaneously. The edge path processes here in [city]. The cloud path sends all raw data to a remote server."
-3. **Results** → "Edge processing was X times faster and reduced data transfer by Y%. At scale with millions of sensors, those bandwidth savings dominate."
-4. **Paper connection** → "This is exactly Shi et al.'s cloud offloading case study: we cached the *operation* at the edge, not just the data. Both latency and bandwidth are co-optimized — the paper's optimization metrics challenge."
-
 ### Fallback Behavior
 
 If the origin server is unreachable, the cloud path automatically falls back to simulated cloud processing (150ms delay + local processing). This ensures the demo works even without the origin server running.

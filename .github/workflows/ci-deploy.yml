@@ -93,6 +93,9 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - name: Set environment variables
+        working-directory: ./origin-server
+        run: railway variables set SIMULATED_LATENCY_MS=0
       - name: Deploy to Railway
         working-directory: ./origin-server
         run: railway up --service=${{ vars.RAILWAY_SERVICE_NAME }}

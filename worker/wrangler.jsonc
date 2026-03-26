@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "edge-computing-demo",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-09-23",
+
+  // Rules to import the HTML file as a text module
+  "rules": [
+    { "type": "Text", "globs": ["**/*.html"], "fallthrough": true }
+  ],
+
+  // Environment variables
+  "vars": {
+    // For local dev, point to the local origin server.
+    // For production, replace with deployed origin URL.
+    "ORIGIN_URL": "https://edge-demo-origin-server-production.up.railway.app/"
+  }
+}

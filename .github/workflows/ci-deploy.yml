@@ -1,0 +1,133 @@
+# ─────────────────────────────────────────────────────────────────
+# Edge Computing Demo — CI / CD
+#
+# • Checks  → every push & PR  (lint, typecheck, build)
+# • Deploy  → push to main only (Railway + Cloudflare Workers)
+# ─────────────────────────────────────────────────────────────────
+
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel redundant runs on the same branch / PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Top-level permissions (least privilege) ──────────────────────
+permissions:
+  contents: read
+
+# ═════════════════════════════════════════════════════════════════
+# Jobs
+# ═════════════════════════════════════════════════════════════════
+
+jobs:
+  # ── 1. Check Origin Server ────────────────────────────────────
+  check-origin:
+    name: "Check · Origin Server"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: origin-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      # Smoke-test: start server, hit /health, then stop
+      - name: Smoke test /health
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          sleep 2
+          STATUS=$(curl -sf http://localhost:3001/health | jq -r '.status')
+          kill $SERVER_PID
+          if [ "$STATUS" != "ok" ]; then
+            echo "::error::Health check failed (status=$STATUS)"
+            exit 1
+          fi
+          echo "✅ Origin server health check passed"
+
+  # ── 2. Check Worker ───────────────────────────────────────────
+  check-worker:
+    name: "Check · Cloudflare Worker"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      # TypeScript type check
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Dry-run build (wrangler compile without deploying)
+      - name: Build (dry-run)
+        run: npx wrangler deploy --dry-run --outdir=dist
+
+  # ── 3. Deploy Origin Server → Railway ─────────────────────────
+  deploy-origin:
+    name: "Deploy · Origin → Railway"
+    needs: [check-origin]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: origin-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service "$RAILWAY_SERVICE_NAME"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_NAME: ${{ vars.RAILWAY_SERVICE_NAME }}
+
+  # ── 4. Deploy Worker → Cloudflare ─────────────────────────────
+  deploy-worker:
+    name: "Deploy · Worker → Cloudflare"
+    needs: [check-worker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          # Override ORIGIN_URL so the worker points to the deployed origin
+          vars: |
+            ORIGIN_URL=${{ vars.ORIGIN_URL }}

@@ -93,10 +93,9 @@ jobs:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Deploy to Railway
         working-directory: ./origin-server
-        run: railway up
+        run: railway up --service=${{ vars.RAILWAY_SERVICE_NAME }}
 
   # ── 4. Deploy Worker → Cloudflare ─────────────────────────────
   deploy-worker:
